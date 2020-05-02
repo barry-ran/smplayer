@@ -1,19 +1,19 @@
 /*  smplayer, GUI front-end for mplayer.
-    Copyright (C) 2006-2020 Ricardo Villalba <rvm@users.sourceforge.net>
+	Copyright (C) 2006-2020 Ricardo Villalba <rvm@users.sourceforge.net>
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #ifndef PLAYLIST_H
@@ -39,18 +39,18 @@
 class PLItem : public QStandardItem {
 public:
 	 enum PLItem_Roles { Role_Played = Qt::UserRole + 2, Role_Current = Qt::UserRole + 3, Role_Params = Qt::UserRole + 4,
-                         Role_Video_URL = Qt::UserRole + 5, Role_Icon_URL = Qt::UserRole + 6 };
+						 Role_Video_URL = Qt::UserRole + 5, Role_Icon_URL = Qt::UserRole + 6 };
 
 	PLItem();
 	PLItem(const QString filename, const QString name, double duration);
-        PLItem(const QString filename, const QString name, double duration, double markerA, double markerB);
+		PLItem(const QString filename, const QString name, double duration, double markerA, double markerB);
 	~PLItem();
 
 	void setFilename(const QString filename);
 	void setName(const QString name);
 	void setDuration(double duration);
-        void setMarkerA(double markerA);
-        void setMarkerB(double markerB);
+		void setMarkerA(double markerA);
+		void setMarkerB(double markerB);
 	void setExtraParams(const QStringList & pars);
 	void setVideoURL(const QString & url);
 	void setIconURL(const QString & url);
@@ -62,8 +62,8 @@ public:
 	QString filename();
 	QString name();
 	double duration();
-        double markerA();
-        double markerB();
+		double markerA();
+		double markerB();
 	QStringList extraParams();
 	QString videoURL();
 	QString iconURL();
@@ -79,8 +79,8 @@ protected:
 	QStandardItem * col_duration;
 	QStandardItem * col_filename;
 	QStandardItem * col_shuffle;
-        QStandardItem * col_marker_a;
-        QStandardItem * col_marker_b;
+		QStandardItem * col_marker_a;
+		QStandardItem * col_marker_b;
 };
 
 
@@ -130,7 +130,7 @@ public:
 
 public slots:
 	void addItem(QString filename, QString name, double duration, double markerA, double markerB,
-                 QStringList params = QStringList(), QString video_url = QString::null, QString icon_url = QString::null);
+				 QStringList params = QStringList(), QString video_url = QString::null, QString icon_url = QString::null);
 
 	// Start playing, from item 0 if shuffle is off, or from
 	// a random item otherwise
@@ -302,8 +302,8 @@ protected slots:
 	void setDurationColumnVisible(bool b);
 	void setFilenameColumnVisible(bool b);
 	void setShuffleColumnVisible(bool b);
-        void setMarkerAColumnVisible(bool b);
-        void setMarkerBColumnVisible(bool b);
+	void setMarkerAColumnVisible(bool b);
+	void setMarkerBColumnVisible(bool b);
 
 protected:
 	void createTable();
@@ -387,8 +387,8 @@ protected:
 	MyAction * showDurationColumnAct;
 	MyAction * showFilenameColumnAct;
 	MyAction * showShuffleColumnAct;
-        MyAction * showMarkerAColumnAct;
-        MyAction * showMarkerBColumnAct;
+	MyAction * showMarkerAColumnAct;
+	MyAction * showMarkerBColumnAct;
 
 	QSettings * set;
 
