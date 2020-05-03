@@ -1676,7 +1676,7 @@ void Playlist::playItem( int n ) {
 			if (play_files_from_start) {
 				emit requestToPlayFile(filename, 0);
 			} else {
-				emit requestToPlayFile(filename, i->markerA());
+				emit requestToPlayFile(filename, i->markerA(), i->markerB());
 			}
 		}
 	}
