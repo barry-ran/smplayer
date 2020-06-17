@@ -847,7 +847,7 @@ void Playlist::list() {
 }
 
 void Playlist::setFilter(const QString & filter) {
-	proxy->setFilterWildcard(filter);
+	proxy->setFilterWildcard(filter.trimmed());
 }
 
 void Playlist::filterEditChanged(const QString & text) {

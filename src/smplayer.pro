@@ -424,17 +424,19 @@ contains( DEFINES, DOWNLOAD_SUBS ) {
 
 # Youtube support
 contains( DEFINES, YOUTUBE_SUPPORT ) {
-	DEFINES += YT_USE_SIG
+	DEFINES += YT_CODEDOWNLOADER
 	INCLUDEPATH += youtube
 	DEPENDPATH += youtube
 
 	HEADERS += youtube/retrieveyoutubeurl.h youtube/loadpage.h
 	SOURCES += youtube/retrieveyoutubeurl.cpp youtube/loadpage.cpp
 
-	contains( DEFINES, YT_USE_SIG ) {
-		HEADERS += youtube/sig.h
-		SOURCES += youtube/sig.cpp
-		#QT += script # optional
+	# FIXME: loadpage is not used by youtube anymore,
+	# but it's used by the playlist
+
+	contains( DEFINES, YT_CODEDOWNLOADER ) {
+		HEADERS += youtube/codedownloader.h
+		SOURCES += youtube/codedownloader.cpp
 	}
 }
 

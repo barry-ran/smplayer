@@ -30,11 +30,16 @@ class CodeDownloader : public QProgressDialog
 	Q_OBJECT
 
 public:
+	enum ErrorMessage { NoError = 0, FailedToRun = 1, UrlNotFound = 2 };
+
 	CodeDownloader(QWidget *parent = 0);
 	~CodeDownloader();
 
 	void saveAs(const QString & output) { output_filename = output; };
 	void setProxy(QNetworkProxy proxy);
+
+	void setUserAgent(const QByteArray & s) { user_agent = s; }
+	QByteArray userAgent() { return user_agent; }
 
 public slots:
 	void download(QUrl url);
@@ -43,15 +48,18 @@ public slots:
 signals:
 	void downloadFinished();
 	void errorOcurred(int error_number, QString error_str);
-	void fileSaved(const QString &, const QString &);
+	void fileSaved(const QString &);
 	void saveFailed(const QString &);
+
+public:
+	static void askAndDownload(QWidget * parent, ErrorMessage e = NoError);
 
 private slots:
 	void gotResponse(QNetworkReply* reply);
 	void updateDataReadProgress(qint64 bytes_read, qint64 total_bytes);
 	void save(QByteArray bytes);
 
-	void reportFileSaved(const QString &, const QString &);
+	void reportFileSaved(const QString &);
 	void reportSaveFailed(const QString &);
 	void reportError(int error_number, QString error_str);
 
@@ -60,6 +68,11 @@ private:
 	QNetworkReply* reply;
 
 	QString output_filename;
+	QByteArray user_agent;
+
+	static CodeDownloader * downloader;
+	QWidget * parent_widget;
+	QString version;
 };
 
 #endif

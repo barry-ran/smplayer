@@ -19,26 +19,15 @@
 #ifndef RETRIEVEYOUTUBEURL_H
 #define RETRIEVEYOUTUBEURL_H
 
-#include <QNetworkAccessManager>
-#include <QMap>
-#include "loadpage.h"
+#include <QProcess>
 
-#ifdef YT_USE_SIG
-#include "sig.h"
-#endif
+#define YT_USE_YTDL
+//#define YT_OBSOLETE
 
-class QSettings;
-
-#define YT_GET_VIDEOINFO
+#ifdef YT_OBSOLETE
 #define YT_DASH_SUPPORT
-#define YT_LIVE_STREAM
-
-#ifdef YT_GET_VIDEOINFO
-//#define YT_DISCARD_HTTPS
+class QSettings;
 #endif
-
-typedef QMap<int,QString> UrlMap;
-typedef QMap<QString,QString> OptMap;
 
 class RetrieveYoutubeUrl : public QObject
 {
@@ -102,147 +91,105 @@ public:
 	RetrieveYoutubeUrl( QObject* parent = 0 );
 	~RetrieveYoutubeUrl();
 
-	void clearData();
+	void fetchPage(const QString & url);
+	void close();
 
 	void setPreferredResolution(Resolution r) { preferred_resolution = r; }
 	Resolution preferredResolution() { return preferred_resolution; }
 
-	void setUserAgent(const QString & s) { LoadPage::setDefaultUserAgent(s); };
-	QString userAgent() { return LoadPage::defaultUserAgent(); };
-
-	void fetchPage(const QString & url);
-
-	#ifdef YT_USE_SIG
-	void setSettings(QSettings * settings);
-	#endif
-
-	QString urlTitle() { return url_title; }
-	QString origUrl() { return yt_url; }
-
-	QString selectedUrl() { return selected_url; }
-	Quality selectedQuality() { return selected_quality; }
-
-	#ifdef YT_DASH_SUPPORT
 	void setUseDASH(bool b) { use_dash = b; }
 	bool useDASH() { return use_dash; }
 
 	void enable60fps(bool b) { use_60fps = b; }
 	bool is60fpsEnabled() { return use_60fps; }
 
+	void enableAv1(bool b) { use_av1 = b; }
+	bool isAv1Enabled() { return use_av1; }
+
+	void setYtdlBin(const QString & path) { ytdl_bin = path; };
+	QString ytdlBin();
+
+	void setUserAgent(const QString & s) { user_agent = s; }
+	QString userAgent() { return user_agent; };
+
+	void setUserFormat(const QString & s) { user_format = s; }
+	QString userFormat() { return user_format; }
+
+	QString origUrl() { return yt_url; }
+
+	QString videoTitle() { return video_title; }
+
+	QString selectedVideoUrl() { return selected_video_url; }
+	Quality selectedVideoQuality() { return selected_video_quality; }
+
 	QString selectedAudioUrl() { return selected_audio_url; }
 	Quality selectedAudioQuality() { return selected_audio_quality; }
-	#endif
 
-	UrlMap urlMap() { return urlmap; }
-
-	bool isUrlSupported(const QString & url);
+	static bool isUrlSupported(const QString & url);
 	QString fullUrl(const QString & url);
-
-	void setUseHttpsMain(bool b) { use_https_main = b; };
-	bool useHttpsMain() { return use_https_main; };
 
 	static QString extensionForItag(int itag);
 
-	void close() { /* FIXME: do something */ };
+#ifdef YT_OBSOLETE
+	#ifdef YT_USE_SIG
+	void setSettings(QSettings * /*settings*/) {};
+	#endif
+
+	QString urlTitle() { return video_title; }
+	QString selectedUrl() { return selected_video_url; }
+	Quality selectedQuality() { return selected_video_quality; }
+
+	void setUseHttpsMain(bool b) { use_https_main = b; };
+	bool useHttpsMain() { return use_https_main; };
+#endif
 
 signals:
-	void gotUrls(const QMap<int, QString>&);
-	//void gotPreferredUrl(const QString &);
 	void gotPreferredUrl(const QString & url, int itag);
 	void gotEmptyList();
 	void connecting(QString host);
+	void processFailedToStart();
+#ifdef YT_OBSOLETE
 	void errorOcurred(int error_number, QString error_str);
 	void signatureNotFound(const QString & title);
 	void noSslSupport();
+#endif
 
 protected slots:
-	void videoPageLoaded(QByteArray page);
-	#ifdef YT_GET_VIDEOINFO
-	void videoInfoPageLoaded(QByteArray page);
-	#endif
-	#ifdef YT_USE_SIG
-	void playerPageLoaded(QByteArray page);
-	#endif
-	#ifdef YT_LIVE_STREAM
-	void streamPageLoaded(QByteArray page);
-	#endif
-	/* void receivedResponse303(QString); */
-
-	void processVideoPage();
+	void processFinished(int exitCode, QProcess::ExitStatus exitStatus);
+	void processError(QProcess::ProcessError error);
 
 protected:
-	void fetchVideoPage(const QString & url);
-	#ifdef YT_GET_VIDEOINFO
-	void fetchVideoInfoPage(const QString & url);
-	#endif
-	#ifdef YT_USE_SIG
-	void fetchPlayerPage(const QString & player_name);
-	#endif
-	#ifdef YT_LIVE_STREAM
-	void fetchStreamPage(const QString & url);
-	#endif
-
-	void setUrlMap(const UrlMap & map) { urlmap = map; }
-
-	QString getVideoID(QString video_url);
-	OptMap extractOptions(const QByteArray & urldata);
-	QString getArrayFromStreamingData(const QString & page);
-	UrlMap extractURLs(QString fmtArray, bool allow_https, bool use_player);
-
-	void finish(const UrlMap & url_map);
-
-	#ifdef YT_USE_SIG
-	QString aclara(const QString & text, const QString & player = "");
-	#endif
-
-	static Quality findResolution(const UrlMap & url_map, QList<Quality> l);
-	static Quality findPreferredResolution(const UrlMap & url_map, Resolution res, bool use_dash = false, bool use_60fps = false);
-	#ifdef YT_DASH_SUPPORT
-	static Quality findBestAudio(const QMap<int, QString>& url_map);
-	#endif
-
-	static QString sanitizeForUnicodePoint(QString string);
+	void clearData();
+	void runYtdl(const QString & url);
+	static QString getVideoID(QString video_url);
+	static QString resolutionToText(Resolution r);
+	static int getItagFromFormat(const QByteArray & t);
 
 private:
-	QNetworkAccessManager* manager;
-	LoadPage * dl_video_page;
-
-	#ifdef YT_GET_VIDEOINFO
-	LoadPage * dl_video_info_page;
-	#endif
-
-	#ifdef YT_USE_SIG
-	LoadPage * dl_player_page;
-	Sig sig;
-	QSettings * set;
-	#endif
-
-	#ifdef YT_LIVE_STREAM
-	LoadPage * dl_stream_page;
-	#endif
-
 	Resolution preferred_resolution;
 
+#ifdef YT_OBSOLETE
 	bool use_https_main;
+#endif
 
 	QString yt_url;
-	QString url_title;
+	QString video_title;
 
-	QString selected_url;
-	Quality selected_quality;
+	QString selected_video_url;
+	Quality selected_video_quality;
 
-	#ifdef YT_DASH_SUPPORT
 	QString selected_audio_url;
 	Quality selected_audio_quality;
+
 	bool use_dash;
 	bool use_60fps;
-	#endif
+	bool use_av1;
 
-	UrlMap urlmap;
+	QString user_agent;
+	QString user_format;
 
-	QString video_page;
-	bool failed_to_decrypt_signature;
+	QProcess * process;
+	QString ytdl_bin;
 };
 
 #endif
-

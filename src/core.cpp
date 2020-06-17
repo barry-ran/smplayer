@@ -62,10 +62,6 @@
 
 #ifdef YOUTUBE_SUPPORT
 #include "retrieveyoutubeurl.h"
-  #ifdef YT_USE_YTSIG
-  #include "ytsig.h"
-  #endif
-
   #define PREF_YT_ENABLED pref->streaming_type == Preferences::StreamingYT || pref->streaming_type == Preferences::StreamingAuto
 #endif
 
@@ -288,18 +284,13 @@ Core::Core( MplayerWindow *mpw, QWidget* parent )
 
 #ifdef YOUTUBE_SUPPORT
 	yt = new RetrieveYoutubeUrl(this);
+	#ifdef YT_OBSOLETE
 	yt->setUseHttpsMain(pref->yt_use_https_main);
-
-	#ifdef YT_USE_SIG
-	QSettings * sigset = new QSettings(Paths::configPath() + "/sig.ini", QSettings::IniFormat, this);
-	yt->setSettings(sigset);
 	#endif
 
 	connect(yt, SIGNAL(gotPreferredUrl(const QString &, int)), this, SLOT(openYT(const QString &)));
 	connect(yt, SIGNAL(connecting(QString)), this, SLOT(connectingToYT(QString)));
-	connect(yt, SIGNAL(errorOcurred(int,QString)), this, SLOT(YTFailed(int,QString)));
-	connect(yt, SIGNAL(noSslSupport()), this, SIGNAL(noSslSupport()));
-	connect(yt, SIGNAL(signatureNotFound(const QString&)), this, SIGNAL(signatureNotFound(const QString&)));
+	connect(yt, SIGNAL(processFailedToStart()), this, SIGNAL(YTprocessFailedToStart()));
 	connect(yt, SIGNAL(gotEmptyList()), this, SLOT(YTNoVideoUrl()));
 #endif
 
@@ -591,15 +582,12 @@ void Core::openYT(const QString & url) {
 }
 
 void Core::connectingToYT(QString host) {
-	emit showMessage( tr("Connecting to %1").arg(host) );
-}
-
-void Core::YTFailed(int /*error_number*/, QString /*error_str*/) {
-	emit showMessage( tr("Unable to retrieve the Youtube page") );
+	emit showMessage( tr("Connecting to %1").arg(host), 10000 );
 }
 
 void Core::YTNoVideoUrl() {
 	emit showMessage( tr("Unable to locate the URL of the video") );
+	emit YTUrlNotFound();
 }
 #endif
 
@@ -933,22 +921,13 @@ void Core::openStream(QString name, QStringList params) {
 		if (!yt_full_url.isEmpty()) {
 			qDebug() << "Core::openStream: youtube url detected:" << yt_full_url;
 			name = yt_full_url;
+			if (!pref->yt_ytdl_bin.isEmpty()) yt->setYtdlBin(pref->yt_ytdl_bin);
 			yt->setPreferredResolution( (RetrieveYoutubeUrl::Resolution) pref->yt_resolution );
-			#ifdef Q_OS_WIN
-			QString user_agent = "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:56.0) Gecko/20100101 Firefox/56.0";
-			#else
-			QString user_agent = "Mozilla/5.0 (X11; Linux i686; rv:62.0) Gecko/20100101 Firefox/62.0";
-			#endif
-			if (!pref->yt_user_agent.isEmpty()) user_agent = pref->yt_user_agent;
-			qDebug() << "Core::openStream: user_agent:" << user_agent;
-			yt->setUserAgent(user_agent);
-			#ifdef YT_DASH_SUPPORT
+			yt->setUserAgent(pref->yt_user_agent);
+			yt->setUserFormat(pref->yt_override_format);
 			yt->setUseDASH(pref->yt_use_dash);
 			yt->enable60fps(pref->yt_use_60fps);
-			#endif
-			#ifdef YT_USE_YTSIG
-			YTSig::setScriptFile( Paths::configPath() + "/yt.js" );
-			#endif
+			yt->enableAv1(pref->yt_use_av1);
 			yt->fetchPage(name);
 			return;
 		}
@@ -972,7 +951,7 @@ void Core::openStream(QString name, QStringList params) {
 
 	#ifdef YOUTUBE_SUPPORT
 	if (PREF_YT_ENABLED) {
-		if (mdat.filename == yt->selectedUrl()) {
+		if (mdat.filename == yt->selectedVideoUrl()) {
 			name = yt->origUrl();
 		}
 	}
@@ -1059,7 +1038,7 @@ void Core::initPlaying(int seek, int end) {
 		// Avoid to pass to mplayer the youtube page url
 		if (mdat.type == TYPE_STREAM) {
 			if (mdat.filename == yt->origUrl()) {
-				mdat.filename = yt->selectedUrl();
+				mdat.filename = yt->selectedVideoUrl();
 			}
 		}
 	}
@@ -1181,11 +1160,11 @@ void Core::finishRestart() {
 	if (PREF_YT_ENABLED) {
 		// Change the real url with the youtube page url and set the title
 		if (mdat.type == TYPE_STREAM) {
-			if (mdat.filename == yt->selectedUrl()) {
+			if (mdat.filename == yt->selectedVideoUrl()) {
 				mdat.filename = yt->origUrl();
-				mdat.stream_title = yt->urlTitle();
+				mdat.stream_title = yt->videoTitle();
 				if (proc->isMPlayer()) {
-					mdat.stream_path = yt->selectedUrl();
+					mdat.stream_path = yt->selectedVideoUrl();
 				}
 			}
 		}
@@ -2068,9 +2047,9 @@ void Core::startMplayer( QString file, double seek, double end ) {
 		QString audio_file = "";
 		if (!mset.external_audio.isEmpty() && QFile::exists(mset.external_audio)) audio_file = mset.external_audio;
 
-		#if defined(YOUTUBE_SUPPORT) && defined(YT_DASH_SUPPORT)
+		#ifdef YOUTUBE_SUPPORT
 		if (PREF_YT_ENABLED) {
-			if (file == yt->selectedUrl() && yt->useDASH()) audio_file = yt->selectedAudioUrl();
+			if (file == yt->selectedVideoUrl() && yt->useDASH()) audio_file = yt->selectedAudioUrl();
 		}
 		#endif
 
@@ -2501,7 +2480,7 @@ void Core::startMplayer( QString file, double seek, double end ) {
 		if (pref->streaming_type == Preferences::StreamingAuto) {
 			bool is_youtube = false;
 			#ifdef YOUTUBE_SUPPORT
-			if (PREF_YT_ENABLED) is_youtube = (file == yt->selectedUrl());
+			if (PREF_YT_ENABLED) is_youtube = (file == yt->selectedVideoUrl());
 			#endif
 			qDebug() << "Core::startMplayer: is_youtube:" << is_youtube;
 			bool enable_sites = !is_youtube;
